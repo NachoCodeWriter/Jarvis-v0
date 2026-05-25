@@ -1,0 +1,44 @@
+{
+    "traits": {},
+    "preferences": {
+        "architecture_style": {
+            "value": "multiagent",
+            "confidence": 0.9
+        }
+    },
+    "projects": {
+        "multiagent": {
+            "value": true,
+            "confidence": 0.9
+        },
+        "persistent": {
+            "value": true,
+            "confidence": 0.9
+        },
+        "architecture": {
+            "value": true,
+            "confidence": 0.9
+        }
+    },
+    "goals": {
+        "multiagent": {
+            "value": true,
+            "confidence": 0.9
+        },
+        "persistent": {
+            "value": true,
+            "confidence": 0.9
+        },
+        "architecture": {
+            "value": true,
+            "confidence": 0.9
+        }
+    },
+    "tags": [
+        "persistent",
+        "architecture",
+        "consolidation",
+        "multiagent"
+    ],
+    "metadata": {}
+}

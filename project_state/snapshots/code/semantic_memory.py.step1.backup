@@ -1,0 +1,86 @@
+import chromadb
+
+from sentence_transformers import (
+    SentenceTransformer
+)
+
+from backend.config.settings import (
+    RAG_DIR,
+    EMBEDDING_MODEL,
+    SEMANTIC_MEMORY_COLLECTION
+)
+
+from backend.utils.logger import (
+    create_logger
+)
+
+
+# =========================================
+# LOGGER
+# =========================================
+
+semantic_memory_logger = create_logger(
+    "semantic_memory_logger",
+    "semantic_memory.log"
+)
+
+
+# =========================================
+# CONSTANTS
+# =========================================
+
+DEFAULT_MEMORY_TYPE = "episodic"
+
+DEFAULT_SOURCE = "conversation"
+
+
+# =========================================
+# EMBEDDING MODEL
+# =========================================
+
+semantic_memory_logger.info(
+    "Loading embedding model..."
+)
+
+embedding_model = SentenceTransformer(
+    EMBEDDING_MODEL,
+    device="cpu"
+)
+
+semantic_memory_logger.info(
+    "Embedding model loaded"
+)
+
+
+# =========================================
+# CHROMA CLIENT
+# =========================================
+
+semantic_memory_logger.info(
+    "Initializing Chroma client..."
+)
+
+client = chromadb.PersistentClient(
+    path=str(RAG_DIR / "db")
+)
+
+semantic_memory_logger.info(
+    "Chroma client initialized"
+)
+
+
+# =========================================
+# MEMORY COLLECTION
+# =========================================
+
+semantic_memory_logger.info(
+    "Loading semantic memory collection..."
+)
+
+memory_collection = client.get_or_create_collection(
+    name=SEMANTIC_MEMORY_COLLECTION
+)
+
+semantic_memory_logger.info(
+    "Semantic memory collection ready"
+)

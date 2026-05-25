@@ -1,0 +1,51 @@
+import os
+import chromadb
+import fitz
+from sentence_transformers import SentenceTransformer
+
+INPUT_DIR = os.path.expanduser("~/jarvis/rag/input")
+DB_DIR = os.path.expanduser("~/jarvis/rag/db")
+
+client = chromadb.PersistentClient(path=DB_DIR)
+collection = client.get_or_create_collection("jarvis_docs")
+
+embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    doc = fitz.open(pdf_path)
+
+    for page in doc:
+        text += page.get_text()
+
+    return text
+
+documents = []
+
+for filename in os.listdir(INPUT_DIR):
+    if filename.endswith(".pdf"):
+        path = os.path.join(INPUT_DIR, filename)
+
+        print(f"Procesando: {filename}")
+
+        text = extract_text_from_pdf(path)
+
+        documents.append({
+            "id": filename,
+            "text": text
+        })
+
+for doc in documents:
+    embedding = embed_model.encode(doc["text"]).tolist()
+
+    collection.add(
+        ids=[doc["id"]],
+        documents=[doc["text"]],
+        embeddings=[embedding]
+    )
+
+    print(f"Indexado: {doc['id']}")
+
+print("RAG ingestion completada")
+ls ~/jarvis/scripts
+

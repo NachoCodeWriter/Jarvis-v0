@@ -1,0 +1,204 @@
+from backend.agent.orchestrator import ask_llm
+from backend.agent.router import detect_intent
+from backend.agent.tool_executor import execute_tool
+
+from backend.context.context_manager import (
+    build_context
+)
+
+from backend.memory.memory_sanitizer import (
+    sanitize_assistant_memory
+)
+
+from backend.memory.session_memory import (
+    add_message
+)
+
+from backend.utils.logger import (
+    system_logger,
+    tool_logger,
+    memory_logger,
+    error_logger
+)
+
+# =========================================
+# CHAT RESPONSE PIPELINE
+# =========================================
+
+def generate_chat_response(
+    prompt: str
+) -> dict:
+
+    try:
+
+        # ---------------------------------
+        # BUILD CONTEXT
+        # ---------------------------------
+
+        final_prompt = build_context(
+            prompt
+        )
+
+        # ---------------------------------
+        # LLM CALL
+        # ---------------------------------
+
+        response = ask_llm(
+            final_prompt
+        )
+
+        # ------------------------------
+        # SAVE ASSISTANT MESSAGE
+        # ------------------------------
+
+        sanitized_response = sanitize_assistant_memory(
+            response
+        )
+
+        if sanitized_response:
+
+            add_message(
+                role="assistant",
+                content=sanitized_response
+            )
+
+        # ---------------------------------
+        # COMPACT LOGGING
+        # ---------------------------------
+
+        memory_logger.info(
+            f"""
+CHAT RESPONSE GENERATED
+
+Prompt:
+{prompt}
+
+Response Length:
+{len(response)}
+"""
+        )
+
+        return {
+            "tool": "chat",
+            "response": response
+        }
+
+    except Exception as error:
+
+        error_logger.error(
+            f"Error generando chat response: {error}"
+        )
+
+        return {
+            "tool": "chat",
+            "response": "Ha ocurrido un error procesando la respuesta."
+        }
+
+# =========================================
+# TOOL EXECUTION PIPELINE
+# =========================================
+
+def process_tool(
+    intent: str,
+    prompt: str
+):
+
+    try:
+
+        tool_result = execute_tool(
+            intent,
+            prompt
+        )
+
+        if tool_result is None:
+            return None
+
+        # ---------------------------------
+        # COMPACT TOOL LOGGING
+        # ---------------------------------
+
+        tool_logger.info(
+            f"""
+TOOL EXECUTED
+
+Intent:
+{intent}
+
+Prompt:
+{prompt}
+"""
+        )
+
+        return tool_result
+
+    except Exception as error:
+
+        error_logger.error(
+            f"Error ejecutando tool: {error}"
+        )
+
+        return None
+
+# =========================================
+# MAIN AGENT PIPELINE
+# =========================================
+
+def process_prompt(
+    prompt: str
+):
+
+    try:
+
+        # ---------------------------------
+        # SAVE USER MESSAGE
+        # ---------------------------------
+
+        add_message(
+            role="user",
+            content=prompt
+        )
+
+        # ---------------------------------
+        # DETECT INTENT
+        # ---------------------------------
+
+        intent = detect_intent(
+            prompt
+        )
+
+        system_logger.info(
+            f"Intent detectado: {intent}"
+        )
+
+        # ---------------------------------
+        # TOOL EXECUTION
+        # ---------------------------------
+
+        if intent != "chat":
+
+            tool_response = process_tool(
+                intent,
+                prompt
+            )
+
+            if tool_response is not None:
+                return tool_response
+
+        # ---------------------------------
+        # CHAT FALLBACK
+        # ---------------------------------
+
+        return generate_chat_response(
+            prompt
+        )
+
+    except Exception as error:
+
+        error_logger.error(
+            f"Error en process_prompt: {error}"
+        )
+
+        return {
+            "tool": "error",
+            "response": "Ha ocurrido un error interno."
+        }
